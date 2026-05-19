@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>ProxyIP · Cloudflare-Vless 节点工坊</title>
+<meta name="description" content="高质量 ProxyIP 落地节点 · 基于 hofccyf/Cloudflare-Vless · 一键生成 VLESS 链接与订阅" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1020'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='38' font-family='monospace' fill='%2300e5ff' font-weight='900'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
+
+<!-- ╭─── Tailwind CSS v4 (browser runtime) ───╮ -->
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+<style type="text/tailwindcss">
+/* ─── Tailwind v4 设计令牌（暴露成工具类，如 text-accent / bg-card / border-border） ─── */
+@theme {
+  --color-bg:        #070a14;
+  --color-bg-2:      #0c1124;
+  --color-card:      rgba(255,255,255,.04);
+  --color-card-h:    rgba(255,255,255,.07);
+  --color-border:    rgba(255,255,255,.08);
+  --color-text:      #e6ecff;
+  --color-muted:     #8a93b3;
+  --color-accent:    #00e5ff;
+  --color-accent-2:  #a18bff;
+  --color-accent-3:  #ff5cb6;
+  --color-ok:        #3ddc97;
+  --color-warn:      #ffb454;
+  --font-sans:       'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono:       'JetBrains Mono','Fira Code',ui-monospace,Menlo,Consolas,monospace;
+}
+
+/* ─── 兼容旧代码的 CSS 变量别名（保持下方所有自定义 CSS 继续工作） ─── */
+:root{
+  --bg:#070a14;
+  --bg-2:#0c1124;
+  --card:rgba(255,255,255,.04);
+  --card-h:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.08);
+  --text:#e6ecff;
+  --muted:#8a93b3;
+  --accent:#00e5ff;
+  --accent-2:#a18bff;
+  --accent-3:#ff5cb6;
+  --ok:#3ddc97;
+  --warn:#ffb454;
+  --font:'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono','Fira Code',ui-monospace,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{
+  background:
+    radial-gradient(1200px 700px at 12% -10%, rgba(0,229,255,.16), transparent 60%),
+    radial-gradient(900px 600px at 90% 0%, rgba(161,139,255,.14), transparent 55%),
+    radial-gradient(800px 500px at 50% 110%, rgba(255,92,182,.10), transparent 60%),
+    var(--bg);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font-family:inherit}
+
+/* ──────────────────────────  layout  ────────────────────────── */
+.wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
+header.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:48px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.3px}
+.brand .logo{
+  width:38px;height:38px;border-radius:10px;
+  background:conic-gradient(from 180deg,var(--accent),var(--accent-2),var(--accent-3),var(--accent));
+  display:grid;place-items:center;font-size:20px;color:#06091a;font-weight:900;
+  box-shadow:0 8px 28px -8px rgba(0,229,255,.5)
+}
+.brand small{display:block;color:var(--muted);font-weight:500;font-size:11px;margin-top:2px;letter-spacing:.6px;text-transform:uppercase}
+.nav .links{display:flex;gap:18px;font-size:14px;color:var(--muted)}
+.nav .links a{color:var(--muted)}
+.nav .links a:hover{color:var(--text);text-decoration:none}
+
+/* ──────────────────────────  hero / badges：已迁移到 Tailwind 工具类  ────────────────────────── */
+
+/* ──────────────────────────  panel  ────────────────────────── */
+.panel{
+  background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+  border:1px solid var(--border);border-radius:20px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:24px;
+}
+.panel + .panel{margin-top:24px}
+.section-title{display:flex;align-items:baseline;gap:12px;margin:48px 0 18px}
+.section-title h2{font-size:22px;margin:0;font-weight:800;letter-spacing:-.3px}
+.section-title .num{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:700}
+.section-title .desc{color:var(--muted);font-size:13px}
+
+/* config form */
+.config{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:680px){.config{grid-template-columns:1fr}}
+.field label{display:block;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:0 0 6px;font-weight:700}
+.field input{
+  width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);color:var(--text);
+  padding:12px 14px;border-radius:12px;font-family:var(--mono);font-size:14px;outline:none;transition:border .15s,box-shadow .15s
+}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,229,255,.12)}
+
+/* node grid 容器（卡片本身已迁移到 Tailwind 工具类） */
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+
+.btn{
+  flex:1;background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.3);
+  padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s;letter-spacing:.3px
+}
+.btn:hover{background:rgba(0,229,255,.2);transform:translateY(-1px)}
+.btn.alt{background:rgba(161,139,255,.1);color:var(--accent-2);border-color:rgba(161,139,255,.3)}
+.btn.alt:hover{background:rgba(161,139,255,.2)}
+.btn.ok{background:rgba(61,220,151,.15);color:var(--ok);border-color:rgba(61,220,151,.4)}
+
+/* subscription bulk */
+.bulk{
+  font-family:var(--mono);font-size:12px;color:var(--muted);
+  background:rgba(0,0,0,.45);border:1px solid var(--border);border-radius:14px;
+  padding:14px;max-height:280px;overflow:auto;word-break:break-all;white-space:pre-wrap;line-height:1.7
+}
+.bulk-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+
+/* steps：已迁移到 Tailwind 工具类 */
+
+/* path snippet */
+.snippet{
+  font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.45);border:1px solid var(--border);
+  border-radius:12px;padding:14px;color:var(--accent);overflow-x:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all
+}
+
+/* inline code 通用 */
+code.ic{
+  font-family:var(--mono);font-size:.88em;background:rgba(0,229,255,.08);
+  color:var(--accent);padding:2px 7px;border-radius:5px;border:1px solid rgba(0,229,255,.2);
+  word-break:break-all
+}
+
+/* 流程图框 */
+.diagram-box{
+  background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:12px;
+  padding:14px;overflow-x:auto;margin:8px 0 4px
+}
+.diagram-box pre{
+  margin:0;font-family:var(--mono);font-size:12.5px;color:var(--accent-2);
+  line-height:1.75;white-space:pre
+}
+
+/* path 三种写法卡片 */
+.path-cases{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:10px}
+@media(max-width:920px){.path-cases{grid-template-columns:1fr}}
+.pcase{
+  background:rgba(0,0,0,.32);border:1px solid var(--border);border-radius:14px;
+  padding:16px;display:flex;flex-direction:column;gap:10px
+}
+.ptag{
+  align-self:flex-start;font-family:var(--mono);font-size:11px;font-weight:800;
+  color:var(--bg);background:linear-gradient(135deg,var(--accent),#3ddc97);
+  padding:4px 10px;border-radius:7px;letter-spacing:.4px
+}
+.ptag.alt{background:linear-gradient(135deg,var(--accent-2),var(--accent))}
+.ptag.pink{background:linear-gradient(135deg,var(--accent-3),var(--accent-2))}
+.psyntax{
+  font-family:var(--mono);font-size:13.5px;background:rgba(0,0,0,.45);
+  padding:9px 12px;border-radius:8px;border:1px solid var(--border);color:var(--muted)
+}
+.psyntax .k{color:var(--accent);font-weight:700}
+.psyntax .v{color:var(--accent-2)}
+.psyntax .v2{color:var(--accent-3)}
+.pex{
+  font-family:var(--mono);font-size:12.5px;background:rgba(0,229,255,.06);
+  padding:9px 12px;border-radius:8px;border:1px dashed rgba(0,229,255,.3);
+  color:var(--accent);word-break:break-all;line-height:1.55
+}
+.pdesc{color:var(--muted);font-size:13px;line-height:1.7}
+.pdesc b{color:var(--text)}
+
+/* key-value 表格 */
+table.kv{
+  width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;
+  border:1px solid var(--border);border-radius:12px;overflow:hidden;background:rgba(0,0,0,.25)
+}
+table.kv th,table.kv td{padding:11px 14px;text-align:left;vertical-align:top}
+table.kv th{
+  width:38%;background:rgba(255,255,255,.03);color:var(--muted);
+  font-weight:600;border-bottom:1px solid var(--border);font-size:12.5px
+}
+table.kv td{border-bottom:1px solid var(--border);color:var(--text)}
+table.kv tr:last-child th,table.kv tr:last-child td{border-bottom:none}
+@media(max-width:640px){
+  table.kv th{width:34%;font-size:11.5px}
+  table.kv td{font-size:12.5px}
+}
+
+/* 客户端教学卡片 */
+.clients{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+@media(max-width:820px){.clients{grid-template-columns:1fr}}
+.cli{
+  background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:12px;padding:14px 16px
+}
+.cli-h{
+  font-weight:800;font-size:14px;color:var(--accent);margin-bottom:10px;
+  padding-bottom:8px;border-bottom:1px dashed var(--border)
+}
+.cli ol{margin:0;padding-left:20px;color:var(--muted);font-size:13px;line-height:1.85}
+.cli ol li{margin:2px 0}
+.cli ol li b{color:var(--text)}
+
+/* 链接解剖图 */
+.anatomy{
+  font-family:var(--mono);font-size:13.5px;line-height:2;background:rgba(0,0,0,.55);
+  border:1px solid var(--border);border-radius:12px;padding:14px 16px;
+  word-break:break-all;white-space:pre-wrap
+}
+.a-scheme{color:#9aa3c7;font-weight:700}
+.a-uuid  {color:#ffd166;background:rgba(255,209,102,.12);padding:1px 4px;border-radius:4px}
+.a-host  {color:#3ddc97;background:rgba(61,220,151,.12);padding:1px 4px;border-radius:4px}
+.a-port  {color:#ff9d6e;background:rgba(255,157,110,.14);padding:1px 4px;border-radius:4px}
+.a-sym   {color:#5b6486}
+.a-q     {color:#7aa2ff}
+.a-path  {color:#ff5cb6;background:rgba(255,92,182,.14);padding:1px 4px;border-radius:4px}
+.a-tag   {color:#a18bff;background:rgba(161,139,255,.14);padding:1px 4px;border-radius:4px}
+
+.legend{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:10px 18px;margin-top:14px;font-size:13px;color:var(--muted)
+}
+.legend > div{display:flex;align-items:center;gap:8px;line-height:1.6}
+.legend b{color:var(--text);margin-right:4px}
+.dot{width:12px;height:12px;border-radius:4px;flex:none}
+.d-scheme{background:#9aa3c7}
+.d-uuid  {background:#ffd166}
+.d-host  {background:#3ddc97}
+.d-port  {background:#ff9d6e}
+.d-q     {background:#7aa2ff}
+.d-path  {background:#ff5cb6}
+.d-tag   {background:#a18bff}
+
+/* 实战 walk */
+.walk{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.walk-step{
+  display:flex;gap:14px;align-items:flex-start;
+  background:rgba(0,0,0,.32);border:1px solid var(--border);border-radius:12px;padding:14px 16px
+}
+.walk-n{
+  flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));color:var(--bg);
+  font-weight:900;font-family:var(--mono);font-size:15px
+}
+.walk-body{flex:1;color:var(--muted);font-size:13.5px;line-height:1.75}
+.walk-body b{color:var(--text);display:inline-block;margin-bottom:4px}
+.walk-eg{
+  display:inline-block;margin-top:6px;font-family:var(--mono);font-size:12.5px;
+  color:var(--accent);background:rgba(0,229,255,.08);
+  padding:5px 10px;border-radius:7px;border:1px dashed rgba(0,229,255,.3);word-break:break-all
+}
+.walk-final{
+  margin-top:8px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--ok);
+  background:rgba(61,220,151,.06);border:1px solid rgba(61,220,151,.3);
+  padding:10px 12px;border-radius:8px;word-break:break-all;white-space:pre-wrap
+}
+.walk-arrow{
+  text-align:center;color:var(--muted);font-size:18px;line-height:1;
+  font-family:var(--mono);opacity:.6
+}
+
+/* FAQ */
+.faq details{
+  background:rgba(0,0,0,.28);border:1px solid var(--border);border-radius:11px;
+  padding:12px 16px;margin-bottom:10px;transition:.15s
+}
+.faq details[open]{background:rgba(0,229,255,.04);border-color:rgba(0,229,255,.25)}
+.faq summary{
+  cursor:pointer;font-weight:700;color:var(--text);font-size:14px;
+  list-style:none;display:flex;align-items:center;gap:10px;outline:none
+}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{
+  content:'▸';color:var(--accent);font-size:13px;transition:transform .2s;display:inline-block
+}
+.faq details[open] summary::before{transform:rotate(90deg)}
+.faq summary:hover{color:var(--accent)}
+.faq details p{margin:10px 0 0;padding-left:22px;color:var(--muted);font-size:13px;line-height:1.8}
+
+/* footer */
+footer{margin-top:60px;color:var(--muted);font-size:12.5px;text-align:center;line-height:1.8}
+footer a{color:var(--muted)}
+footer a:hover{color:var(--accent)}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(80px);
+  background:#0b1020;color:var(--ok);border:1px solid rgba(61,220,151,.4);
+  padding:12px 22px;border-radius:14px;font-size:14px;font-weight:600;
+  box-shadow:0 18px 48px -10px rgba(0,0,0,.6);opacity:0;transition:.3s;pointer-events:none;z-index:999
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* QR modal */
+.modal{
+  position:fixed;inset:0;background:rgba(4,7,18,.78);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;z-index:200;padding:20px;
+}
+.modal.show{display:flex}
+.modal .card{
+  background:#0e1430;border:1px solid var(--border);border-radius:18px;padding:22px;
+  max-width:380px;width:100%;text-align:center;box-shadow:0 30px 80px -10px rgba(0,0,0,.7)
+}
+.modal h4{margin:0 0 14px;font-size:14px;color:var(--accent);font-family:var(--mono);letter-spacing:.5px;text-transform:uppercase}
+.modal .qrbox{background:#fff;border-radius:12px;padding:14px;display:inline-block}
+.modal .qrbox canvas,.modal .qrbox img{display:block;width:280px;height:280px}
+.modal .meta{margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all;line-height:1.6;max-height:80px;overflow:auto;text-align:left;background:rgba(0,0,0,.4);padding:8px 10px;border-radius:8px;border:1px solid var(--border)}
+.modal .close{margin-top:14px;background:rgba(255,92,182,.12);color:var(--accent-3);border:1px solid rgba(255,92,182,.35);padding:9px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px}
+.modal .close:hover{background:rgba(255,92,182,.22)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="nav">
+    <div class="brand">
+      <div class="logo">⚡</div>
+      <div>
+        ProxyIP Workshop
+        <small>VLESS · Cloudflare · 自备落地</small>
+      </div>
+    </div>
+    <div class="links">
+      <a href="#nodes">节点</a>
+      <a href="#sub">订阅</a>
+      <a href="#deploy">部署</a>
+      <a href="#path">path 教程</a>
+      <a href="#build">拼装手册</a>
+      <a href="https://github.com/hofccyf/Cloudflare-Vless" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </header>
+
+  <!-- ───── Hero（Tailwind 重写） ───── -->
+  <section class="relative pt-6 pb-12">
+    <div class="flex flex-wrap gap-2 mb-2">
+      <span class="font-mono text-xs px-3 py-1.5 rounded-full border border-ok/30 bg-card text-ok">● 在线</span>
+      <span class="font-mono text-xs px-3 py-1.5 rounded-full border border-border bg-card text-muted">自备落地 IP</span>
+      <span class="font-mono text-xs px-3 py-1.5 rounded-full border border-border bg-card text-muted">VLESS + WS + TLS</span>
+      <span class="font-mono text-xs px-3 py-1.5 rounded-full border border-border bg-card text-muted">兼容 Shadowsocks</span>
+      <span class="font-mono text-xs px-3 py-1.5 rounded-full border border-border bg-card text-muted">兼容 TURN (UDP/XUDP)</span>
+      <span class="font-mono text-xs px-3 py-1.5 rounded-full border border-warn/30 bg-card text-warn">不定时更新</span>
+    </div>
+    <h1 class="text-[clamp(36px,6vw,68px)] leading-[1.05] font-black tracking-[-0.03em] mt-[18px] mb-[18px]">
+      高质量
+      <span class="bg-gradient-to-r from-accent via-accent-2 to-accent-3 bg-clip-text text-transparent">ProxyIP</span>
+      <br/>一键生成节点链接
+    </h1>
+    <p class="text-[clamp(15px,1.6vw,18px)] text-muted max-w-[760px] leading-[1.7] mb-7">
+      本项目基于
+      <a href="https://github.com/hofccyf/Cloudflare-Vless" target="_blank" rel="noopener" class="text-accent hover:underline">hofccyf/Cloudflare-Vless</a>
+      Workers 脚本 —— 在下方填入你自己的 <b class="text-text">UUID</b>、<b class="text-text">CF 域名</b> 与 <b class="text-text">落地 ProxyIP</b>，即可即时生成 VLESS 链接并批量订阅。
+      支持 <code class="font-mono text-accent">/?ip=</code> 路径切换落地、完全释放千兆带宽。
+    </p>
+  </section>
+
+  <!-- ───── 配置面板 ───── -->
+  <div class="section-title">
+    <span class="num">01</span>
+    <h2>个性化配置</h2>
+    <span class="desc">链接随输入实时更新</span>
+  </div>
+  <div class="panel">
+    <div class="config">
+      <div class="field">
+        <label>UUID（Worker 中配置的同一个）</label>
+        <input id="uuid" value="" placeholder="例如：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false"/>
+      </div>
+      <div class="field">
+        <label>CF 自定义域名 / Worker 域名</label>
+        <input id="domain" value="" placeholder="例如：your-worker.example.com" autocomplete="off" spellcheck="false"/>
+      </div>
+    </div>
+
+    <!-- Karing / sing-box 兼容开关 -->
+    <label class="mt-4 flex items-start gap-3 p-3 rounded-xl border border-border bg-black/30 cursor-pointer hover:bg-black/40 transition select-none">
+      <input id="karingMode" type="checkbox" class="mt-0.5 size-4 accent-accent cursor-pointer" />
+      <div class="flex-1">
+        <div class="text-[13px] font-bold text-text">
+          🍎 Karing / sing-box 兼容模式
+          <span class="ml-2 inline-block font-mono text-[10px] text-accent bg-accent/10 border border-accent/30 px-1.5 py-0.5 rounded">推荐 iOS / macOS 用户开启</span>
+        </div>
+        <div class="text-[12px] text-muted leading-relaxed mt-1">
+          开启后 path 用 <code class="font-mono text-accent">/ip=IP:PORT</code>（无 <code class="font-mono text-warn">?</code>）；关闭则用 <code class="font-mono text-accent-2">/?ip=IP:PORT</code>。
+          <b class="text-text">两种写法 Worker 都支持</b>，但 sing-box 内核会把 <code class="font-mono">?</code> 强行 URL-encode，导致落地切换失效。
+        </div>
+      </div>
+    </label>
+  </div>
+
+  <!-- ───── 节点列表 ───── -->
+  <div id="nodes" class="section-title">
+    <span class="num">02</span>
+    <h2>落地节点列表</h2>
+    <span class="desc">自备落地 IP · 勾选需要的节点 · 点击「复制」即可导入客户端</span>
+  </div>
+
+  <!-- 用户自备落地节点录入 -->
+  <div class="panel" style="margin-bottom:16px">
+    <label class="block text-[11px] uppercase tracking-wider text-muted font-bold mb-2">
+      📥 录入落地节点（每行一条，格式：<code class="ic">备注名 | IP:PORT</code>，纯 <code class="ic">IP:PORT</code> 也可）
+    </label>
+    <textarea id="nodesInput" rows="6" spellcheck="false" autocomplete="off"
+      class="w-full bg-black/40 border border-border rounded-xl text-text font-mono text-[13px] p-3 outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 resize-y leading-relaxed"
+      placeholder="🇺🇸 美国 | 1.2.3.4:443&#10;🇯🇵 日本 | 5.6.7.8:8443&#10;9.10.11.12:2087"></textarea>
+    <div class="flex flex-wrap items-center gap-3 mt-3">
+      <button id="nodesParse" class="btn" style="flex:none">解析 / 更新</button>
+      <button id="nodesClear" class="btn alt" style="flex:none">清空全部</button>
+      <span class="text-[13px] text-muted">共 <b id="nodesTotal" class="text-accent font-mono">0</b> 条 · 已选 <b id="selCount" class="text-accent font-mono">0</b></span>
+      <span id="selTotal" class="hidden"></span>
+    </div>
+  </div>
+
+  <!-- 多选工具栏（节点存在时才显示） -->
+  <div class="panel" id="selBar" style="margin-bottom:16px;display:none">
+    <div class="flex flex-wrap items-center gap-3">
+      <button id="selAll" class="btn" style="flex:none">全选</button>
+      <button id="selNone" class="btn alt" style="flex:none">清空选择</button>
+      <button id="selInvert" class="btn alt" style="flex:none">反选</button>
+      <span class="text-[13px] text-muted">勾选后会出现在下方「批量订阅」中</span>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <!-- ───── 一键订阅 ───── -->
+  <div id="sub" class="section-title">
+    <span class="num">03</span>
+    <h2>批量订阅</h2>
+    <span class="desc">复制全部 / Base64 订阅文本</span>
+  </div>
+  <div class="panel">
+    <div class="bulk" id="bulk"></div>
+    <div class="bulk-actions">
+      <button class="btn" onclick="copyText(document.getElementById('bulk').innerText,this)">复制全部链接</button>
+      <button class="btn alt" onclick="copyBase64(this)">复制 Base64 订阅</button>
+      <button class="btn alt" onclick="downloadSub()">下载 sub.txt</button>
+    </div>
+  </div>
+
+  <!-- ───── 部署指南 ───── -->
+  <div id="deploy" class="section-title">
+    <span class="num">04</span>
+    <h2>三步部署到 Cloudflare</h2>
+    <span class="desc">基于 hofccyf/Cloudflare-Vless</span>
+  </div>
+  <!-- 三步部署（Tailwind 重写） -->
+  <div class="grid gap-4 grid-cols-1 md:grid-cols-3">
+    <div class="relative rounded-2xl border border-border bg-card p-[18px]">
+      <span class="inline-block font-mono text-[11px] font-extrabold tracking-wider text-bg px-2.5 py-[3px] rounded-md bg-gradient-to-br from-accent to-accent-2">STEP 1</span>
+      <h3 class="mt-2.5 mb-1.5 text-[15px] font-extrabold">新建 Worker</h3>
+      <p class="m-0 text-[13px] text-muted leading-[1.65]">登录 Cloudflare → Workers &amp; Pages → 创建 Worker，复制
+        <a href="https://github.com/hofccyf/Cloudflare-Vless/blob/main/_worker.js" target="_blank" rel="noopener" class="text-accent hover:underline">_worker.js</a>
+        全部内容粘贴并部署。</p>
+    </div>
+    <div class="relative rounded-2xl border border-border bg-card p-[18px]">
+      <span class="inline-block font-mono text-[11px] font-extrabold tracking-wider text-bg px-2.5 py-[3px] rounded-md bg-gradient-to-br from-accent to-accent-2">STEP 2</span>
+      <h3 class="mt-2.5 mb-1.5 text-[15px] font-extrabold">改 UUID + 落地</h3>
+      <p class="m-0 text-[13px] text-muted leading-[1.65]">在脚本顶部修改 <code class="font-mono text-[12px] bg-black/40 px-1.5 py-0.5 rounded text-accent">CFG.id</code> 为你自备的 UUID，并把 <code class="font-mono text-[12px] bg-black/40 px-1.5 py-0.5 rounded text-accent">默认备用小可爱地址</code> 改成你自备的落地 IP（其余保持默认即可）。<br/><b class="text-warn">⚠️ Snippets 部署时务必把 <code class="font-mono text-[12px] bg-black/40 px-1.5 py-0.5 rounded text-accent">CFG.concur</code> 改成 <code class="font-mono text-[12px] bg-black/40 px-1.5 py-0.5 rounded text-accent">1</code>。</b></p>
+    </div>
+    <div class="relative rounded-2xl border border-border bg-card p-[18px]">
+      <span class="inline-block font-mono text-[11px] font-extrabold tracking-wider text-bg px-2.5 py-[3px] rounded-md bg-gradient-to-br from-accent to-accent-2">STEP 3</span>
+      <h3 class="mt-2.5 mb-1.5 text-[15px] font-extrabold">绑定自定义域名</h3>
+      <p class="m-0 text-[13px] text-muted leading-[1.65]">Worker 设置 → 触发器 → 添加自定义域，把 <code class="font-mono text-[12px] bg-black/40 px-1.5 py-0.5 rounded text-accent">你的域名</code> 解析过来；然后在顶部 <b>个性化配置</b> 填入相同的域名，即可使用上方生成的全部节点。</p>
+    </div>
+  </div>
+
+  <!-- ───── path 用法详解（小白友好） ───── -->
+  <div id="path" class="section-title">
+    <span class="num">05</span>
+    <h2>path 路径写法详解</h2>
+    <span class="desc">看完这里你就懂了，0 基础也能玩</span>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin:0 0 8px;font-size:16px;font-weight:800;color:var(--accent)">💡 什么是 path？为什么它这么重要？</h3>
+    <p style="margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.85">
+      你部署在 Cloudflare 上的那段脚本就像一个「快递分拣中心」，<b>客户端先连到它（走 Cloudflare 的 IP）</b>，
+      它再帮你把流量转发到真正的「<b>落地服务器（ProxyIP）</b>」上网。<br/>
+      <b style="color:var(--text)">path 就是你交给分拣中心的「派送地址」</b> —— 你想把流量发到哪台落地、连哪个端口、甚至订阅哪份 IP 列表，全靠它告诉脚本。
+    </p>
+
+    <div class="diagram-box">
+      <pre>
+你的客户端 ──TLS─▶ Cloudflare ─读 path─▶ 落地 ProxyIP ─▶ 真正的目标网站
+   (V2RayN)        (你的 CF 域名)       (你自备的落地 IP)       (google.com 等)
+      </pre>
+    </div>
+
+    <h3 style="margin:24px 0 10px;font-size:16px;font-weight:800;color:var(--accent-2)">🧩 path 的三种写法（全部以 <code class="ic">/?ip=</code> 开头）</h3>
+
+    <div class="path-cases">
+      <!-- case 1 -->
+      <div class="pcase">
+        <div class="ptag">① 直连 IP</div>
+        <div class="psyntax"><span class="k">/?ip=</span><span class="v">IP</span>:<span class="v2">PORT</span></div>
+        <div class="pex">/?ip=1.2.3.4:443</div>
+        <div class="pdesc">
+          <b>最常用</b>。直接把流量丢到指定的落地服务器和端口。<br/>
+          ✅ 速度最稳　✅ 本站节点录入框默认就是这种写法<br/>
+          ⚠️ 端口可省略（默认 443），但若你的落地端口非 443，<b>请务必写全</b>。
+        </div>
+      </div>
+
+      <!-- case 2 -->
+      <div class="pcase">
+        <div class="ptag alt">② 直连域名</div>
+        <div class="psyntax"><span class="k">/?ip=</span><span class="v">domain.com</span>[:<span class="v2">PORT</span>]</div>
+        <div class="pex">/?ip=dsl253-007-079.nyc1.dsl.speakeasy.net</div>
+        <div class="pdesc">
+          落地是一个动态域名（家宽 / DDNS）时使用。Worker 会先解析域名再连接。<br/>
+          适合自建家庭落地、合租 NAT VPS 等场景。
+        </div>
+      </div>
+
+      <!-- case 3 -->
+      <div class="pcase">
+        <div class="ptag pink">③ 远程 TXT 订阅</div>
+        <div class="psyntax"><span class="k">/?ip=</span><span class="v">https://.../xx.txt</span></div>
+        <div class="pex">/?ip=https://raw.githubusercontent.com/hofccyf/myip/refs/heads/main/us.txt</div>
+        <div class="pdesc">
+          指向一份 <b>纯文本 IP 列表</b>（每行一个 <code class="ic">IP:PORT</code>），Worker 会自动随机挑一个用。<br/>
+          ✅ TXT 更新了，客户端<b>不用换链接</b>，全自动跟新 —— 适合做「美国池」「香港池」。<br/>
+          📂 你可以把自己整理的落地池 <code class="ic">.txt</code> 放到 GitHub raw / 任意 HTTPS 直链，直接当订阅源用。
+        </div>
+      </div>
+    </div>
+
+    <p style="margin:20px 0 0;color:var(--muted);font-size:13px;line-height:1.8">
+      ⛔ <b>不支持</b> SOCKS5 代理（如 <code class="ic">/?ip=socks5://...</code> 写法无效，会失败）。<br/>
+      ⛔ <b>不要</b>同时写 <code class="ic">/?ip=A&amp;ip=B</code>，只会取第一个。
+    </p>
+  </div>
+
+  <!-- 在客户端怎么填 -->
+  <div class="panel" style="margin-top:18px">
+    <h3 style="margin:0 0 14px;font-size:16px;font-weight:800;color:var(--accent)">🎯 客户端里 path 长什么样？</h3>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.8">
+      你导入的 VLESS 链接里，<b>路径必须 URL 编码</b>。这就是为什么界面上的链接看着「乱码」：
+    </p>
+
+    <table class="kv">
+      <tr><th>明文（看得懂）</th><td><code class="ic">/?ip=1.2.3.4:443</code>　← 把 1.2.3.4:443 换成你自备的落地</td></tr>
+      <tr><th>编码后（链接里）</th><td><code class="ic">%2F%3Fip%3D1.2.3.4%3A443</code></td></tr>
+      <tr><th>对应符号</th><td>
+        <code class="ic">/</code> → <code class="ic">%2F</code>　
+        <code class="ic">?</code> → <code class="ic">%3F</code>　
+        <code class="ic">=</code> → <code class="ic">%3D</code>　
+        <code class="ic">:</code> → <code class="ic">%3A</code>
+      </td></tr>
+    </table>
+
+    <p style="margin:18px 0 8px;color:var(--text);font-size:14px;font-weight:700">在不同客户端的填法：</p>
+    <div class="clients">
+      <div class="cli">
+        <div class="cli-h">📱 V2RayN / V2RayNG</div>
+        <ol>
+          <li>新建 / 编辑节点</li>
+          <li>找到「<b>路径 (path)</b>」一栏</li>
+          <li>粘贴 <code class="ic">/?ip=&lt;你的落地IP&gt;:&lt;端口&gt;</code>（写明文即可，软件会自动编码）</li>
+        </ol>
+      </div>
+      <div class="cli">
+        <div class="cli-h">🍎 Shadowrocket</div>
+        <ol>
+          <li>节点详情 → 「Path」</li>
+          <li>填 <code class="ic">/?ip=IP:PORT</code></li>
+          <li>类型选 <code class="ic">ws</code>，TLS 打开，SNI 填你的 CF 域名</li>
+        </ol>
+      </div>
+      <div class="cli">
+        <div class="cli-h">⚙️ Clash Meta / Stash</div>
+        <ol>
+          <li>YAML 节点里的 <code class="ic">ws-opts.path</code></li>
+          <li>填 <code class="ic">/?ip=IP:PORT</code></li>
+          <li><code class="ic">ws-opts.headers.Host</code> 填 CF 域名</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- 进阶用法 -->
+  <div class="panel" style="margin-top:18px">
+    <h3 style="margin:0 0 12px;font-size:16px;font-weight:800;color:var(--accent-3)">🚀 进阶：用本仓库做「地区池订阅」</h3>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.8">
+      想让节点「美国」永远指向当前最新的美国 IP？把 path 改成指向本仓库的 raw 文件即可，<b>不用改链接，IP 自动跟着仓库走</b>：
+    </p>
+    <div class="snippet">/?ip=https://raw.githubusercontent.com/&lt;你的用户名&gt;/proxyip/main/us.txt
+/?ip=https://raw.githubusercontent.com/&lt;你的用户名&gt;/proxyip/main/hk.txt
+/?ip=https://raw.githubusercontent.com/&lt;你的用户名&gt;/proxyip/main/jp.txt</div>
+    <p style="margin:12px 0 0;color:var(--muted);font-size:13px;line-height:1.75">
+      💡 把上面的明文 path 用在自定义节点里即可（V2RayN 直接粘到 path 框、Clash 写在 <code class="ic">ws-opts.path</code>）。<br/>
+      💡 本站节点录入框里写的就是 <b>固定 IP 直连</b>（写法 ①），稳定优先；如需「地区池订阅」，就改用写法 ③。
+    </p>
+  </div>
+
+  <!-- ───── 完整链接拼装手册 ───── -->
+  <div id="build" class="section-title">
+    <span class="num">06</span>
+    <h2>完整链接拼装手册</h2>
+    <span class="desc">手把手教你把零件拼成 VLESS 链接</span>
+  </div>
+
+  <!-- 解剖图 -->
+  <div class="panel">
+    <h3 style="margin:0 0 10px;font-size:16px;font-weight:800;color:var(--accent)">🔬 第一步：先把链接「拆开」看一遍</h3>
+    <p style="margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.8">
+      下面这条就是一条完整的 VLESS 链接，颜色相同的部分含义相同 —— 看懂结构，你就能自己拼了：
+    </p>
+    <div class="anatomy">
+<span class="a-scheme">vless://</span><span class="a-uuid">&lt;你的UUID&gt;</span><span class="a-sym">@</span><span class="a-host">&lt;你的CF域名&gt;</span><span class="a-sym">:</span><span class="a-port">443</span><span class="a-sym">?</span><span class="a-q">encryption=none</span><span class="a-sym">&amp;</span><span class="a-q">security=tls</span><span class="a-sym">&amp;</span><span class="a-q">sni=</span><span class="a-host">&lt;你的CF域名&gt;</span><span class="a-sym">&amp;</span><span class="a-q">fp=chrome</span><span class="a-sym">&amp;</span><span class="a-q">type=ws</span><span class="a-sym">&amp;</span><span class="a-q">host=</span><span class="a-host">&lt;你的CF域名&gt;</span><span class="a-sym">&amp;</span><span class="a-q">path=</span><span class="a-path">%2F%3Fip%3D&lt;你的落地IP&gt;%3A&lt;端口&gt;</span><span class="a-sym">#</span><span class="a-tag">节点备注</span>
+    </div>
+
+    <div class="legend">
+      <div><span class="dot d-scheme"></span><b>协议头</b>　固定写 <code class="ic">vless://</code></div>
+      <div><span class="dot d-uuid"></span><b>UUID</b>　你的「身份证」，跟 Worker 里 <code class="ic">userID</code> 一致</div>
+      <div><span class="dot d-host"></span><b>域名</b>　CF 自定义域 / Worker 域 / 优选 IP，3 处全写同一个</div>
+      <div><span class="dot d-port"></span><b>端口</b>　永远是 <code class="ic">443</code>（客户端连 CF）</div>
+      <div><span class="dot d-q"></span><b>固定参数</b>　全部抄写，不要改</div>
+      <div><span class="dot d-path"></span><b>path</b>　★ 唯一随节点变化的部分（落地 IP 编码后塞这里）</div>
+      <div><span class="dot d-tag"></span><b>备注</b>　<code class="ic">#</code> 后面随便写，客户端会显示成节点名</div>
+    </div>
+  </div>
+
+  <!-- 5 个变量 -->
+  <div class="panel" style="margin-top:18px">
+    <h3 style="margin:0 0 12px;font-size:16px;font-weight:800;color:var(--accent-2)">📦 第二步：5 个空格，你只要填 3 个</h3>
+    <table class="kv">
+      <tr><th>① UUID</th><td>填一次永远不变 · 跟 Worker 里的 <code class="ic">CFG.id</code> 一致 → 形如 <code class="ic">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code></td></tr>
+      <tr><th>② 域名（3 处）</th><td>填一次永远不变 · @后面、sni=、host= 都填它 → <b>你自己的 CF 自定义域 / Worker 域</b></td></tr>
+      <tr><th>③ 落地 IP:PORT</th><td>★ 每个节点不一样 · 自备的落地服务器地址 → 形如 <code class="ic">1.2.3.4:443</code></td></tr>
+      <tr><th>④ 备注（节点名）</th><td>随便写 · 客户端会显示 → 例如 <code class="ic">🇺🇸 US-纽约</code></td></tr>
+      <tr><th>⑤ 其他参数</th><td>原样抄 · <code class="ic">encryption=none&amp;security=tls&amp;fp=chrome&amp;type=ws</code> 一字不动</td></tr>
+    </table>
+  </div>
+
+  <!-- 拼装模板 -->
+  <div class="panel" style="margin-top:18px">
+    <h3 style="margin:0 0 10px;font-size:16px;font-weight:800;color:var(--accent-3)">🧱 第三步：照着「模板」抄</h3>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:13.5px;line-height:1.75">
+      把下面模板里 <code class="ic" style="color:var(--accent-3);border-color:rgba(255,92,182,.4);background:rgba(255,92,182,.1)">{大括号}</code> 里的内容替换掉就行：
+    </p>
+    <div class="snippet" style="color:var(--text)">vless://<span style="color:var(--accent-3)">{UUID}</span>@<span style="color:var(--accent-3)">{域名}</span>:443?encryption=none&amp;security=tls&amp;sni=<span style="color:var(--accent-3)">{域名}</span>&amp;fp=chrome&amp;type=ws&amp;host=<span style="color:var(--accent-3)">{域名}</span>&amp;path=<span style="color:var(--accent-3)">{编码后的path}</span>#<span style="color:var(--accent-3)">{节点名}</span></div>
+
+    <h3 style="margin:22px 0 10px;font-size:15px;font-weight:800;color:var(--ok)">🪄 path 编码懒人办法</h3>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:13.5px;line-height:1.75">
+      不会手动 URL 编码？两个办法二选一：
+    </p>
+    <ul style="margin:0;padding-left:22px;color:var(--muted);font-size:13.5px;line-height:1.95">
+      <li><b>办法 A · 在线编码：</b>打开 <a href="https://www.urlencoder.org/" target="_blank" rel="noopener">urlencoder.org</a>，
+        粘贴 <code class="ic">/?ip=&lt;你的落地IP&gt;:&lt;端口&gt;</code> → 点 ENCODE → 复制结果填到 <code class="ic">path=</code> 后面</li>
+      <li><b>办法 B · 直接用本站：</b>顶部输入 UUID + 域名，下方节点卡「复制链接」就是已编码好的成品，**不用拼**</li>
+      <li><b>办法 C · 客户端帮你编码：</b>V2RayN 里手动建节点，path 框里直接填 <code class="ic">/?ip=IP:PORT</code> 明文，客户端导出链接时会自动编码</li>
+    </ul>
+  </div>
+
+  <!-- 实战示范 -->
+  <div class="panel" style="margin-top:18px">
+    <h3 style="margin:0 0 12px;font-size:16px;font-weight:800;color:var(--accent)">🎬 第四步：从 0 到 1 实战 —— 拼一条节点（占位示例）</h3>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:13.5px;line-height:1.75">
+      下面用 <code class="ic">&lt;你的UUID&gt;</code> / <code class="ic">&lt;你的CF域名&gt;</code> / <code class="ic">&lt;你的落地IP&gt;:&lt;端口&gt;</code> 作占位，<b>请替换成自备的真实值</b>。
+    </p>
+
+    <div class="walk">
+      <div class="walk-step">
+        <div class="walk-n">A</div>
+        <div class="walk-body">
+          <b>从你的落地 IP 池里拿一行</b><br/>
+          <span class="walk-eg">&lt;你的落地IP&gt;:&lt;端口&gt;</span>
+        </div>
+      </div>
+      <div class="walk-arrow">↓</div>
+
+      <div class="walk-step">
+        <div class="walk-n">B</div>
+        <div class="walk-body">
+          <b>套上 <code class="ic">/?ip=</code> 前缀，得到明文 path</b><br/>
+          <span class="walk-eg">/?ip=&lt;你的落地IP&gt;:&lt;端口&gt;</span>
+        </div>
+      </div>
+      <div class="walk-arrow">↓</div>
+
+      <div class="walk-step">
+        <div class="walk-n">C</div>
+        <div class="walk-body">
+          <b>URL 编码（4 个符号替换即可）</b><br/>
+          <span class="walk-eg">%2F%3Fip%3D&lt;你的落地IP&gt;%3A&lt;端口&gt;</span>
+        </div>
+      </div>
+      <div class="walk-arrow">↓</div>
+
+      <div class="walk-step">
+        <div class="walk-n">D</div>
+        <div class="walk-body">
+          <b>填进模板 → 完整链接出炉 🎉</b>
+          <div class="walk-final">vless://&lt;你的UUID&gt;@&lt;你的CF域名&gt;:443?encryption=none&amp;security=tls&amp;sni=&lt;你的CF域名&gt;&amp;fp=chrome&amp;type=ws&amp;host=&lt;你的CF域名&gt;&amp;path=%2F%3Fip%3D&lt;你的落地IP&gt;%3A&lt;端口&gt;#节点备注</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 交互式拼装器 -->
+  <div class="panel" style="margin-top:18px">
+    <h3 style="margin:0 0 12px;font-size:16px;font-weight:800;color:var(--accent-2)">🛠️ 第五步：在线拼装器（自己试一试）</h3>
+    <p style="margin:0 0 14px;color:var(--muted);font-size:13.5px;line-height:1.75">
+      下方任意框输入，结果会实时拼好。完成后点「复制」就能用：
+    </p>
+    <div class="config">
+      <div class="field">
+        <label>UUID</label>
+        <input id="b-uuid" value="" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" spellcheck="false"/>
+      </div>
+      <div class="field">
+        <label>CF 域名 / Worker 域</label>
+        <input id="b-host" value="" placeholder="your-worker.example.com" autocomplete="off" spellcheck="false"/>
+      </div>
+      <div class="field">
+        <label>落地 IP:PORT（任选本仓库一行）</label>
+        <input id="b-ip" value="" placeholder="例如：1.2.3.4:443" autocomplete="off" spellcheck="false"/>
+      </div>
+      <div class="field">
+        <label>节点备注（随便写）</label>
+        <input id="b-tag" value="" placeholder="例如：🇺🇸 我的美国节点" autocomplete="off"/>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <div style="font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px">实时生成的链接</div>
+      <div class="bulk" id="b-out" style="max-height:none"></div>
+      <div class="bulk-actions">
+        <button class="btn" id="b-copy">复制完整链接</button>
+        <button class="btn alt" id="b-qr">扫码导入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="panel" style="margin-top:18px">
+    <h3 style="margin:0 0 14px;font-size:16px;font-weight:800;color:var(--ok)">❓ 小白常见疑问</h3>
+    <div class="faq">
+      <details open>
+        <summary>path 改了之后，UUID 和域名也要改吗？</summary>
+        <p>不用。UUID = 你的「身份证」、域名 = 「分拣中心地址」，两者只跟 Worker 本身有关。
+        path 只决定流量送往哪个落地，可以随便改。</p>
+      </details>
+      <details>
+        <summary>不写 path 会怎样？</summary>
+        <p>会走 Worker 脚本里写死的 <code class="ic">默认备用小可爱地址</code>（即 GrainTCP.js 顶部那一行兜底落地）。也能用，但所有节点都跑同一个落地，没法切区。</p>
+      </details>
+      <details>
+        <summary>端口 3306 / 2087 这种不是数据库 / 控制面板端口吗，安全吗？</summary>
+        <p>这里的端口是<b>落地服务器对外开放的反代入口</b>，不是数据库。Cloudflare 出站允许这些端口，所以才能用。
+        你的客户端始终只连 443，整个链路是 TLS 加密的，没有泄露风险。</p>
+      </details>
+      <details>
+        <summary>落地 IP 失效了怎么办？</summary>
+        <p>① 换成本站另一个地区的节点；② 等仓库 <code class="ic">.txt</code> 更新（README 写明「不定时更新」）；
+        ③ 改用写法 ③ 订阅整份 TXT，自动随机挑一个可用 IP。</p>
+      </details>
+      <details>
+        <summary>Cloudflare 优选 IP 跟 path 有冲突吗？</summary>
+        <p>没有。优选 IP 是替换链接里 <code class="ic">@</code> 后面的 <b>address</b>，让客户端连更快的 CF 入口；
+        path 决定 <b>落地</b>。两者各管一段，互不影响。</p>
+      </details>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      Data · <a href="https://github.com/" target="_blank" rel="noopener">本仓库 *.txt</a> &nbsp;·&nbsp;
+      Engine · <a href="https://github.com/hofccyf/Cloudflare-Vless" target="_blank" rel="noopener">hofccyf/Cloudflare-Vless</a> &nbsp;·&nbsp;
+      Txt · <a href="https://github.com/hofccyf/MyTxt" target="_blank" rel="noopener">hofccyf/MyTxt</a>
+    </p>
+    <p>© ProxyIP Workshop · 高质量 proxyip，不定时更新</p>
+  </footer>
+</div>
+
+<div class="toast" id="toast">已复制 ✓</div>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="card">
+    <h4 id="modalTitle">VLESS · QR</h4>
+    <div class="qrbox"><img id="qrimg" alt="QR"/></div>
+    <div class="meta" id="qrmeta"></div>
+    <button class="close" onclick="closeModal()">关闭</button>
+  </div>
+</div>
+
+<script>
+// ───── 数据：用户自备 ─────
+let NODES = [];
+
+const $ = id => document.getElementById(id);
+const uuidEl = $('uuid'), domainEl = $('domain'), grid = $('grid'), bulk = $('bulk'), karingEl = $('karingMode');
+const selCountEl = $('selCount'), nodesTotalEl = $('nodesTotal'), selBar = $('selBar');
+const nodesInput = $('nodesInput');
+
+/* 节点 key：使用 ip:port，唯一区分 */
+const nodeKey = n => `${n.ip}:${n.port}`;
+
+/* 解析 textarea 中的节点列表：
+   - 每行一条
+   - 支持 "备注名 | IP:PORT"、"备注名 = IP:PORT"、"备注名 IP:PORT"、或纯 "IP:PORT"
+   - 端口缺省 443
+   - 行首 # 或 // 视为注释
+*/
+function parseNodes(text){
+  const out = [];
+  const seen = new Set();
+  text.split(/\r?\n/).forEach(raw => {
+    const line = raw.trim();
+    if(!line || line.startsWith('#') || line.startsWith('//')) return;
+    let name = '', addr = '';
+    // 优先按分隔符切（| 或 = 或 ,）
+    const m = line.match(/^(.+?)\s*[|=,]\s*(.+)$/);
+    if(m){ name = m[1].trim(); addr = m[2].trim(); }
+    else {
+      // 尝试 "name ip:port" 形式（最后一段含 : 或纯 IP）
+      const tokens = line.split(/\s+/);
+      const last = tokens[tokens.length - 1];
+      if(tokens.length > 1 && /^[\w.\-:[\]]+$/.test(last)){
+        addr = last; name = tokens.slice(0, -1).join(' ').trim();
+      } else {
+        addr = line; name = '';
+      }
+    }
+    // 解析 addr：支持 IPv6 [::1]:443、IPv4、域名
+    let ip = addr, port = 443;
+    const v6 = addr.match(/^\[([^\]]+)\](?::(\d+))?$/);
+    if(v6){ ip = v6[1]; port = v6[2] ? +v6[2] : 443; }
+    else {
+      const idx = addr.lastIndexOf(':');
+      if(idx > 0 && /^\d+$/.test(addr.slice(idx+1))){
+        ip = addr.slice(0, idx); port = +addr.slice(idx+1);
+      }
+    }
+    if(!ip) return;
+    const node = { name: name || ip, ip, port };
+    const k = nodeKey(node);
+    if(seen.has(k)) return;
+    seen.add(k);
+    out.push(node);
+  });
+  return out;
+}
+
+/* 持久化：节点原始文本 + 已选 key 列表 */
+const NODES_TEXT_KEY = 'nodesInputText';
+const SELECTED_KEY   = 'selectedNodeKeys';
+
+const selected = new Set();
+try {
+  const saved = JSON.parse(localStorage.getItem(SELECTED_KEY) || '[]');
+  if (Array.isArray(saved)) saved.forEach(k => selected.add(k));
+} catch {}
+const saveSelected = () => { try { localStorage.setItem(SELECTED_KEY, JSON.stringify([...selected])); } catch {} };
+const saveNodesText = () => { try { localStorage.setItem(NODES_TEXT_KEY, nodesInput.value); } catch {} };
+
+// 兼容模式：true → /ip=（sing-box/Karing 安全）；false → /?ip=（V2Ray/Xray 经典）
+const pathPrefix = () => karingEl.checked ? '/ip=' : '/?ip=';
+
+// 输入是否就绪
+const inputsReady = () => uuidEl.value.trim() && domainEl.value.trim();
+
+function buildLink(n){
+  const uuid = uuidEl.value.trim();
+  const host = domainEl.value.trim();
+  if(!uuid || !host) return '';
+  const path = encodeURIComponent(`${pathPrefix()}${n.ip}:${n.port}`);
+  const tag  = encodeURIComponent(`${n.name}-${n.ip}`);
+  return `vless://${uuid}@${host}:443?encryption=none&security=tls&sni=${host}&fp=chrome&type=ws&host=${host}&path=${path}#${tag}`;
+}
+
+function selectedNodes(){ return NODES.filter(n => selected.has(nodeKey(n))); }
+
+function updateSelInfo(){
+  selCountEl.textContent = selected.size;
+  nodesTotalEl.textContent = NODES.length;
+}
+
+/* HTML escape 用于安全渲染用户输入 */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function render(){
+  const ready = inputsReady();
+  selBar.style.display = NODES.length ? '' : 'none';
+
+  if(NODES.length === 0){
+    grid.innerHTML = `
+      <div class="col-span-full p-6 rounded-2xl border border-dashed border-border bg-card text-center text-muted text-[14px] leading-relaxed">
+        🪄 请在上方文本框录入你的落地节点（每行一条），点击「解析 / 更新」即可生成卡片。
+      </div>`;
+  } else {
+    grid.innerHTML = NODES.map((n,i)=>{
+      const k = nodeKey(n);
+      const checked = selected.has(k);
+      const ringCls = checked ? 'ring-2 ring-accent/60 bg-card-h' : '';
+      return `
+        <div class="group relative overflow-hidden flex flex-col gap-3 p-[18px] rounded-2xl border border-border bg-card hover:bg-card-h hover:-translate-y-0.5 transition ${ringCls}" data-i="${i}">
+          <label class="flex items-center justify-between cursor-pointer select-none gap-2">
+            <div class="flex items-center gap-2.5 font-extrabold text-[15px] min-w-0">
+              <input type="checkbox" class="sel-cb size-4 accent-accent cursor-pointer flex-none" ${checked ? 'checked' : ''} data-k="${esc(k)}"/>
+              <span class="truncate">${esc(n.name)}</span>
+            </div>
+            <button class="act-del flex-none text-[11px] text-muted hover:text-accent-3 px-2 py-1 rounded border border-border bg-black/30" title="删除此节点">✕</button>
+          </label>
+          <div class="font-mono text-[13px] text-accent break-all">${esc(n.ip)}:${n.port}</div>
+          <div class="link font-mono text-[11.5px] text-muted bg-black/40 px-3 py-2.5 rounded-[10px] border border-border max-h-[84px] overflow-auto leading-normal break-all whitespace-pre-wrap"></div>
+          <div class="flex gap-2 mt-auto">
+            <button class="act-copy flex-1 font-bold text-[12.5px] tracking-wide px-3 py-2.5 rounded-[10px] border border-accent/30 bg-accent/10 text-accent hover:bg-accent/20 hover:-translate-y-px transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" ${ready?'':'disabled'}>复制链接</button>
+            <button class="act-qr   flex-1 font-bold text-[12.5px] tracking-wide px-3 py-2.5 rounded-[10px] border border-accent-2/30 bg-accent-2/10 text-accent-2 hover:bg-accent-2/20 hover:-translate-y-px transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" ${ready?'':'disabled'}>二维码</button>
+          </div>
+        </div>`;
+    }).join('');
+    grid.querySelectorAll('[data-i]').forEach(el=>{
+      const i = +el.dataset.i;
+      el.querySelector('.link').textContent = ready ? buildLink(NODES[i]) : '⚠️ 请先在上方填写 UUID 与域名';
+    });
+  }
+
+  // 批量订阅区
+  if(NODES.length === 0){
+    bulk.textContent = '⚠️ 请先在上方录入落地节点。';
+  } else if(!ready){
+    bulk.textContent = '⚠️ 请先在上方「个性化配置」填写 UUID 与 CF 域名，再勾选需要的节点。';
+  } else if(selected.size === 0){
+    bulk.textContent = '⚠️ 尚未勾选任何节点。请到上方节点列表勾选，或点击「全选」。';
+  } else {
+    bulk.textContent = selectedNodes().map(buildLink).join('\n');
+  }
+  updateSelInfo();
+}
+
+/* —— 事件委托：保证按钮一定可点击 —— */
+grid.addEventListener('click', e=>{
+  // 复选框：更新选择集合
+  if(e.target.classList.contains('sel-cb')){
+    const k = e.target.dataset.k;
+    if(e.target.checked) selected.add(k); else selected.delete(k);
+    saveSelected();
+    render();
+    return;
+  }
+  const node = e.target.closest('[data-i]'); if(!node) return;
+  const i = +node.dataset.i;
+  const n = NODES[i]; if(!n) return;
+
+  // 删除单个节点
+  if(e.target.classList.contains('act-del')){
+    const k = nodeKey(n);
+    selected.delete(k);
+    // 同步从 textarea 中删除对应行
+    const remaining = NODES.filter((_,idx) => idx !== i);
+    nodesInput.value = remaining.map(x => `${x.name} | ${x.ip}:${x.port}`).join('\n');
+    NODES = remaining;
+    saveNodesText(); saveSelected(); render();
+    return;
+  }
+
+  if(!inputsReady()){
+    toast('请先填写 UUID 与域名');
+    return;
+  }
+  const link = buildLink(n);
+  if(e.target.classList.contains('act-copy')) copyText(link, e.target);
+  if(e.target.classList.contains('act-qr'))   showQR(link, `${n.name} · ${n.ip}:${n.port}`);
+});
+
+/* —— 全选 / 清空 / 反选 —— */
+$('selAll').addEventListener('click', ()=>{
+  NODES.forEach(n => selected.add(nodeKey(n)));
+  saveSelected(); render();
+});
+$('selNone').addEventListener('click', ()=>{
+  selected.clear();
+  saveSelected(); render();
+});
+$('selInvert').addEventListener('click', ()=>{
+  NODES.forEach(n => { const k = nodeKey(n); if(selected.has(k)) selected.delete(k); else selected.add(k); });
+  saveSelected(); render();
+});
+
+/* —— 解析 textarea —— */
+function applyNodesText(){
+  NODES = parseNodes(nodesInput.value);
+  // 清理已选中但不再存在的 key
+  const valid = new Set(NODES.map(nodeKey));
+  [...selected].forEach(k => { if(!valid.has(k)) selected.delete(k); });
+  saveSelected(); saveNodesText(); render();
+}
+$('nodesParse').addEventListener('click', ()=>{ applyNodesText(); toast(`已解析 ${NODES.length} 个节点`); });
+$('nodesClear').addEventListener('click', ()=>{
+  if(!nodesInput.value && NODES.length === 0) return;
+  if(confirm('确定清空所有节点？')){
+    nodesInput.value = ''; NODES = []; selected.clear();
+    saveSelected(); saveNodesText(); render();
+  }
+});
+// 输入时也实时更新（防抖）
+let _t;
+nodesInput.addEventListener('input', ()=>{ clearTimeout(_t); _t = setTimeout(applyNodesText, 350); });
+
+/* —— 通用复制：优先 Clipboard API，失败回退到 execCommand（兼容 file://） —— */
+function copyText(text, btn){
+  const done = ok => {
+    if(ok){
+      toast('已复制 ✓');
+      if(btn){const o=btn.textContent;btn.textContent='✓ 已复制';btn.classList.add('ok');setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok')},1400)}
+    }else{
+      // 终极兜底：弹窗让用户手动复制
+      window.prompt('请手动复制（Ctrl+C → Enter）：', text);
+    }
+  };
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=>done(true), ()=>fallback());
+  }else{
+    fallback();
+  }
+  function fallback(){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      done(ok);
+    }catch(_){ done(false); }
+  }
+}
+
+function copyBase64(btn){
+  if(!inputsReady()){ toast('请先填写 UUID 与域名'); return; }
+  if(selected.size === 0){ toast('请先勾选节点'); return; }
+  const all = selectedNodes().map(buildLink).join('\n');
+  const b64 = btoa(unescape(encodeURIComponent(all)));
+  copyText(b64, btn);
+}
+
+function downloadSub(){
+  if(!inputsReady()){ toast('请先填写 UUID 与域名'); return; }
+  if(selected.size === 0){ toast('请先勾选节点'); return; }
+  const blob = new Blob([selectedNodes().map(buildLink).join('\n')],{type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sub.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  toast('已下载 sub.txt');
+}
+
+/* —— 内嵌 QR 模态框（不再使用 window.open，避免被拦截） —— */
+function showQR(link, title){
+  $('modalTitle').textContent = title || 'VLESS · QR';
+  $('qrimg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=0&data=' + encodeURIComponent(link);
+  $('qrmeta').textContent = link;
+  $('modal').classList.add('show');
+}
+function closeModal(){ $('modal').classList.remove('show'); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),1800)}
+
+/* ───── Karing 兼容模式：本地持久化 + 联动两处渲染 ───── */
+try { karingEl.checked = localStorage.getItem('karingMode') === '1'; } catch {}
+karingEl.addEventListener('change', () => {
+  try { localStorage.setItem('karingMode', karingEl.checked ? '1' : '0'); } catch {}
+  render();
+  renderBuilder();
+  toast(karingEl.checked ? '🍎 已开启 Karing 兼容模式（/ip=...）' : '⚡ 已切回经典模式（/?ip=...）');
+});
+
+uuidEl.addEventListener('input',render);
+domainEl.addEventListener('input',render);
+
+/* ───── 初始化：恢复 localStorage 的节点文本 ───── */
+try {
+  const savedText = localStorage.getItem(NODES_TEXT_KEY);
+  if (savedText) nodesInput.value = savedText;
+} catch {}
+NODES = parseNodes(nodesInput.value);
+// 过滤已失效的已选 key
+{
+  const valid = new Set(NODES.map(nodeKey));
+  [...selected].forEach(k => { if(!valid.has(k)) selected.delete(k); });
+}
+render();
+
+/* ───── 第五步：交互式拼装器 ───── */
+const bUuid = $('b-uuid'), bHost = $('b-host'), bIp = $('b-ip'), bTag = $('b-tag'), bOut = $('b-out');
+function buildOne(){
+  const uuid = bUuid.value.trim();
+  const host = bHost.value.trim();
+  const ip   = bIp.value.trim();
+  const tag  = encodeURIComponent(bTag.value.trim() || 'Node');
+  const path = encodeURIComponent(`${pathPrefix()}${ip}`);
+  return `vless://${uuid}@${host}:443?encryption=none&security=tls&sni=${host}&fp=chrome&type=ws&host=${host}&path=${path}#${tag}`;
+}
+function renderBuilder(){ bOut.textContent = buildOne(); }
+[bUuid, bHost, bIp, bTag].forEach(el => el.addEventListener('input', renderBuilder));
+$('b-copy').addEventListener('click', e => copyText(buildOne(), e.currentTarget));
+$('b-qr').addEventListener('click',   () => showQR(buildOne(), '🧱 拼装器 · ' + bIp.value.trim()));
+renderBuilder();
+</script>
+</body>
+</html>
